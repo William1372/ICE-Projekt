@@ -8,6 +8,8 @@ public class Main {
         if (conn != null) {
             DatabaseHandler.createUserTable(conn);
             DatabaseHandler.createRunningLogTable(conn);
+            DatabaseHandler.createGoalTable(conn);
+            DatabaseHandler.createChallengeTable(conn);
             cphFitness.startMenu();
         }
     }

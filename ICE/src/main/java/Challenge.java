@@ -5,6 +5,9 @@ public class Challenge {
     private int time;
 
     public Challenge (String name, double distance, int time) {
+        this.name = name;
+        this.distance = distance;
+        this.time = time;
 
 
 

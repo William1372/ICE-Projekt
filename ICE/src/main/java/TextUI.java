@@ -9,15 +9,15 @@ public class TextUI {
     }
 
     public String promptText (String msg){
-        System.out.println(msg);            //Asks the user a question
-        String input = scanner.nextLine(); //Scans the users input
-        return input;                      //and returns it as a String
+        System.out.println(msg);
+        String input = scanner.nextLine();
+        return input;
     }
 
 
     public int promptNumeric (String msg){
-        System.out.println(msg);  //asks the user a question
-        String input = scanner.nextLine(); //Scans the users input
+        System.out.println(msg);
+        String input = scanner.nextLine();
         int number;
 
         try {
@@ -25,7 +25,7 @@ public class TextUI {
         }
         catch (NumberFormatException e){
             displayMsg("Please only enter numbers");
-            number = promptNumeric (msg);  //call on the method again until they return a number
+            number = promptNumeric (msg);
         }
         return number;
 

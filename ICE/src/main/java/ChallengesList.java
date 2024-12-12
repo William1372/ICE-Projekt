@@ -1,21 +1,22 @@
 import java.util.ArrayList;
+import java.util.List;
 
 public class ChallengesList {
-    private static ArrayList<Challenge> challengesList;
+    private static ArrayList<Challenge> AllChallengesList;
 
 
     public ChallengesList() {
-        this.challengesList = new ArrayList<>();
+        this.AllChallengesList = new ArrayList<>();
     }
 
     public static void viewAllChallenges() {
-        for (Challenge c : challengesList) {
+        for (Challenge c : AllChallengesList) {
             System.out.println(c.toString());
         }
     }
 
-    public  ArrayList<Challenge> getChallengesList(){
-        return challengesList;
+    public List<Challenge> getAllChallengesList(){
+        return AllChallengesList;
     }
 }
 

@@ -2,8 +2,6 @@ import java.sql.*;
 
 public class DatabaseHandler {
     public static final String DB_URL = "jdbc:sqlite:identifier.sqlite";
-    public static final String DB_USER = "root";
-    public static final String DB_PASSWORD = "";
 
     private static Connection connection;
 
@@ -23,6 +21,7 @@ public class DatabaseHandler {
             return null;
         }
     }
+
     public static void createRunningLogTable(Connection conn) {
         String sql = """
     CREATE TABLE IF NOT EXISTS running_log (
@@ -41,6 +40,43 @@ public class DatabaseHandler {
             System.out.println("Running log table created or already exists.");
         } catch (SQLException e) {
             System.out.println("Error creating running log table: " + e.getMessage());
+        }
+    }
+
+    public static void createGoalTable(Connection conn) {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            distance FLOAT,
+            minutes INTEGER,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.execute();
+            System.out.println("Goals table created or already exists.");
+        } catch (SQLException e) {
+            System.out.println("Error creating table: " + e.getMessage());
+        }
+    }
+
+    public static void createChallengeTable (Connection conn){
+        String sql = """
+            CREATE TABLE IF NOT EXISTS challenges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            distance INTEGER,
+            hours INTEGER,
+            minutes INTEGER,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.execute();
+            System.out.println("Challenges table created or already exists.");
+        } catch (SQLException e) {
+            System.out.println("Error creating table: " + e.getMessage());
         }
     }
 
@@ -97,30 +133,6 @@ public class DatabaseHandler {
         }
     }
 
-    public static void printAllUsers(Connection conn) {
-        String sql = "SELECT id, username, password, age, gender, height, weight FROM users";
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String username = rs.getString("username");
-                String password = rs.getString("password");
-                int age = rs.getInt("age");
-                String gender = rs.getString("gender");
-                int height = rs.getInt("height");
-                double weight = rs.getDouble("weight");
-
-                // Udskriv brugerens informationer
-                System.out.println("ID: " + id + ", Username: " + username + ", Password: " + password
-                        + ", Age: " + age + ", Gender: " + gender + ", Height: " + height + ", Weight: " + weight);
-            }
-        } catch (SQLException e) {
-            System.out.println("Error retrieving users: " + e.getMessage());
-        }
-    }
-
     public static void saveRun(User user, Run run) {
         String sql = """
     INSERT INTO running_log (user_id, hours, minutes, seconds, distance, date)
@@ -142,7 +154,25 @@ public class DatabaseHandler {
         }
     }
 
+    public static void saveGoal (User user, Goal goal){
+        String sql = """
+                INSERT INTO goals (user_id, distance, minutes)
+                VALUES (?, ?, ?);
+                """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)){
+            stmt.setInt(1, user.getId());
+            stmt.setFloat(2, goal.getDistance());
+            stmt.setInt(3, goal.getMinutes());
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error saving goal: " + e.getMessage());
+        }
+    }
+
     public static Connection getConnection() {
         return connection;
     }
 }
+
+

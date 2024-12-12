@@ -9,6 +9,7 @@ public class Leaderboard {
     public Leaderboard(){
 
     }
+
     public void viewLeaderboard() {
 
         String bold = "\033[1m";
@@ -37,7 +38,7 @@ public class Leaderboard {
 
             int rank = 1;
             while (rs.next()) {
-                String username = rs.getString("username").trim();  // Henter username fra resultatet
+                String username = rs.getString("username").trim();
                 float distanceKm = rs.getFloat("distance_km");
                 double paceMinPerKm = rs.getDouble("pace_min_per_km");
 
@@ -49,6 +50,4 @@ public class Leaderboard {
             e.printStackTrace();
         }
     }
-
-
-        }
+}

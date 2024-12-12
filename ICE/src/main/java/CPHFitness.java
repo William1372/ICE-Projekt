@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class CPHFitness {
-    private static Connection connection; // Databaseforbindelse
+    private static Connection connection;
     private User currentUser;
     private Leaderboard leaderboard;
     private TextUI ui;
@@ -47,11 +47,11 @@ public class CPHFitness {
                 "5) View your current challenge or take a new one \n " +
                 "6) View your goals \n " +
                 "7) View leaderboard \n " +
-                "8) Exit program");
+                "8) Edit profile \n " +
+                "9) Exit program");
 
         switch (choice) {
             case 1:
-                // Læg til løb
                 int hours = ui.promptNumeric("Enter hours: ");
                 int minutes = ui.promptNumeric("Enter minutes ");
                 int seconds = ui.promptNumeric("Enter seconds: ");
@@ -65,10 +65,11 @@ public class CPHFitness {
                 break;
             case 2:
                 createGoal();
+                mainMenu();
                 break;
             case 3:
                 System.out.println("List of previous runs: ");
-                currentUser.viewRunningLog();  // Kun løb for den aktuelle bruger
+                currentUser.viewRunningLog();
                 mainMenu();
                 break;
             case 4:
@@ -80,13 +81,17 @@ public class CPHFitness {
                 mainMenu();
             case 6:
                 System.out.println("Current goals: ");
-                currentUser.viewGoalLog();
+                currentUser.getGoalsFromDatabase(currentUser);
                 mainMenu();
             case 7:
                 leaderboard.viewLeaderboard();
                 mainMenu();
                 break;
             case 8:
+                currentUser.updateProfile();
+                mainMenu();
+                break;
+            case 9:
                 System.out.println("Exiting the program. Goodbye!");
                 exitProgram();
             default:
@@ -107,18 +112,24 @@ public class CPHFitness {
                 float goal1 = ui.promptNumeric("Enter distance in kilometers:");
                 currentUser.addGoal(new Goal(goal1, 0));
                 System.out.println("You just added : " + goal1 + " km to your goals. Good luck!");
+                Goal goalObj1 = new Goal(goal1, 0);
+                DatabaseHandler.saveGoal(currentUser, goalObj1);
                 mainMenu();
                 break;
             case 2:
                 float goal2Meters = ui.promptNumeric("Enter distance in meters:");
-                float goal2Time = ui.promptNumeric("Enter time in minutes: ");
-                currentUser.addGoal(new Goal(goal2Meters, goal2Time));
-                System.out.println("You just added: " + goal2Meters + goal2Time + " to your goals. Good luck!");
+                int goal2Time = ui.promptNumeric("Enter time in minutes: ");
+                currentUser.addGoal(new Goal(goal2Meters, goal2Time, 0));
+                System.out.println("You just added: " + goal2Meters + " meters in " + goal2Time + " minutes to your goals. Good luck!");
+                Goal goalObj2 = new Goal(goal2Meters, goal2Time, 0);
+                DatabaseHandler.saveGoal(currentUser, goalObj2);
                 break;
             case 3:
                 int goal3 = ui.promptNumeric("Enter time in minutes: ");
                 currentUser.addGoal(new Goal(goal3, 0));
                 System.out.println("You just added : " + goal3 + " to your goals. Good luck!");
+                Goal goalObj3 = new Goal(goal3, 0);
+                DatabaseHandler.saveGoal(currentUser, goalObj3);
                 break;
             default:
                 System.out.println("Invalid number. Please try again.");
@@ -131,7 +142,6 @@ public class CPHFitness {
         String inputUsername = ui.promptText(bold + "Enter your username: ");
         String inputPassword = ui.promptText(bold + "Enter your password: ");
 
-        // SQL forespørgsel for at hente brugerdata
         String sql = "SELECT * FROM users WHERE username = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -144,16 +154,14 @@ public class CPHFitness {
                     ui.displayMsg(bold + "Login succeeded!");
                     ui.displayMsg(bold + "Welcome, " + inputUsername + "!");
 
-                    // Opret en User-instans baseret på databasedata
                     String gender = rs.getString("gender");
                     int age = rs.getInt("age");
                     int height = rs.getInt("height");
                     double weight = rs.getDouble("weight");
-                    int userId = rs.getInt("id");  // Hent ID'et fra databasen
+                    int userId = rs.getInt("id");
 
-                    // Sæt currentUser og id
                     currentUser = new User(inputUsername, storedPassword, age, gender, height, weight);
-                    currentUser.setId(userId); // Sæt brugerens ID korrekt
+                    currentUser.setId(userId);
 
                     return;
                 } else {
@@ -162,7 +170,7 @@ public class CPHFitness {
             } else {
                 ui.displayMsg(bold + "Username not found. Please try again or sign up!");
             }
-            startMenu(); // Genkald metoden for at prøve igen
+            startMenu();
         } catch (SQLException e) {
             ui.displayMsg(bold + "An error occurred during login: " + e.getMessage());
         }
@@ -176,20 +184,17 @@ public class CPHFitness {
         int height = ui.promptNumeric("Enter your height in cm:");
         double weight = ui.promptNumeric("Enter your weight in kg:");
 
-        // Opret en User-instans uden ID først
         User user = new User(username, password, age, gender, height, weight);
 
-        // Gem brugeren i databasen
         DatabaseHandler.saveUser(user);
 
-        // Hent det nyoprettede ID fra databasen og sæt det på User objektet
         String sql = "SELECT id FROM users WHERE username = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 int userId = rs.getInt("id");
-                user.setId(userId); // Sæt ID på User objektet
+                user.setId(userId);
             }
         } catch (SQLException e) {
             ui.displayMsg("Error retrieving user ID after registration: " + e.getMessage());
@@ -199,15 +204,19 @@ public class CPHFitness {
         return user;
     }
 
-    //Shows the users current challenges
     public void viewCurrentChallenges() {
 
-      //for(Challenge c : getChallengeslist){
+        ArrayList<Challenge> challenges = currentUser.getCurrentChallenges();
 
-        //}
-
+        if (challenges.isEmpty()) {
+            ui.displayMsg("You have no active challenges.");
+        } else {
+            ui.displayMsg("Your active challenges:");
+            for (Challenge challenge : challenges) {
+                ui.displayMsg(challenge.toString());
+            }
+        }
     }
-
 
     public void exitProgram(){
         System.exit(0);

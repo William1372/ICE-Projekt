@@ -1,5 +1,9 @@
 import java.sql.*;
 import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 
 public class User {
     private int id;
@@ -9,10 +13,10 @@ public class User {
     private String gender;
     private int height;
     private double weight;
-    private ArrayList<Run> runningLog;
     private ArrayList<Goal> goalLog;
     private TextUI ui = new TextUI();
     private ArrayList<Challenge> currentChallenges;
+    private CPHFitness cphfitness = new CPHFitness();
 
     public User(String username, String password, int age, String gender, int height, double weight) {
         this.username = username;
@@ -21,7 +25,6 @@ public class User {
         this.gender = gender;
         this.height = height;
         this.weight = weight;
-        this.runningLog = new ArrayList<>();
         this.goalLog = new ArrayList<>();
         this.currentChallenges = new ArrayList<>();
     }
@@ -30,33 +33,113 @@ public class User {
 
     }
 
-    public void updateWeight() {
+    public void updateProfile() {
+        int choice = ui.promptNumeric("1) Edit weight \n" +
+                "2) Edit height \n" +
+                "3) Return to main menu");
+
+        Connection connection = DatabaseHandler.getConnection();
+
+        try {
+            connection.setAutoCommit(false);
+
+            switch (choice) {
+                case 1:
+                    updateWeight(connection);
+                    break;
+                case 2:
+                    updateHeight(connection);
+                    break;
+                case 3:
+                    cphfitness.mainMenu();
+                    return;
+                default:
+                    cphfitness.mainMenu();
+                    return;
+            }
+
+            connection.commit();
+            ui.displayMsg("\u001B[1mChanges have been successfully saved.");
+
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+                ui.displayMsg("\u001B[1mTransaction failed, changes rolled back.");
+            } catch (SQLException ex) {
+                ui.displayMsg("\u001B[1mError rolling back transaction: " + ex.getMessage());
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                ui.displayMsg("\u001B[1mError resetting autocommit: " + e.getMessage());
+            }
+        }
+    }
+
+
+    public void updateWeight(Connection conn) {
         String bold = "\u001B[1m";
         try {
             double newWeight = ui.promptNumeric(bold + "Type your updated weight in kg's: ");
             if (newWeight > 0) {
                 ui.displayMsg(bold + "Weight has been updated from: " + weight + "kg., to: " + newWeight + "kg.");
                 this.weight = newWeight;
+
+                String updateSql = "UPDATE users SET weight = ? WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                    stmt.setDouble(1, newWeight);
+                    stmt.setInt(2, this.id);
+                    int rowsAffected = stmt.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        conn.commit();
+                        ui.displayMsg(bold + "Your weight has been updated in the database.");
+                    } else {
+                        conn.rollback();
+                        ui.displayMsg(bold + "Failed to update your weight in the database.");
+                    }
+                } catch (SQLException e) {
+                    conn.rollback();
+                    ui.displayMsg(bold + "Database error: " + e.getMessage());
+                }
             } else {
                 ui.displayMsg(bold + "Invalid weight. Please type a positive number!");
-                updateWeight();
+                updateWeight(conn);
             }
         } catch (Exception e) {
             System.out.println(bold + e);
         }
     }
 
-    public void updateHeight() {
+    public void updateHeight(Connection conn) {
         String bold = "\u001B[1m";
         try {
             int newHeight = ui.promptNumeric(bold + "Type your updated height in cm's: ");
             if (newHeight > 0) {
                 ui.displayMsg(bold + "Height has been updated from: " + height + "cm., to: " + newHeight + "cm.");
-                height = newHeight;
-            }
-            else {
+                this.height = newHeight;
+
+                String updateSql = "UPDATE users SET height = ? WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                    stmt.setInt(1, newHeight);
+                    stmt.setInt(2, this.id);
+                    int rowsAffected = stmt.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        conn.commit();
+                        ui.displayMsg(bold + "Your height has been updated in the database.");
+                    } else {
+                        conn.rollback();
+                        ui.displayMsg(bold + "Failed to update your height in the database.");
+                    }
+                } catch (SQLException e) {
+                    conn.rollback();
+                    ui.displayMsg(bold + "Database error: " + e.getMessage());
+                }
+            } else {
                 ui.displayMsg(bold + "Invalid height. Please type a positive number!");
-                updateHeight();
+                updateHeight(conn);
             }
         } catch (Exception e) {
             System.out.println(bold + e);
@@ -94,16 +177,28 @@ public class User {
         }
     }
 
+    
 
-        public void viewGoalLog() {
-        try{
-            for(Goal goal : goalLog){
-                System.out.println(goal);
+    public List<Goal> getGoalsFromDatabase(User user) {
+        List<Goal> goals = new ArrayList<>();
+        String sql = "SELECT distance, minutes FROM goals WHERE user_id = ?";
+
+        try (PreparedStatement stmt = DatabaseHandler.getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, user.getId()); // Sætter brugerens ID i forespørgslen
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    float distance = rs.getFloat("distance");
+                    int minutes = rs.getInt("minutes");
+                    Goal goal = new Goal(distance, minutes);
+                    goals.add(goal); // Tilføjer målet til listen
+                }
             }
-        } catch(Exception e){
-            System.out.println(e);
+        } catch (SQLException e) {
+            System.out.println("Error retrieving goals: " + e.getMessage());
         }
-    }
+        return goals; // Returnerer listen af mål
+    } // Skal fikses - INGEN liste/ArrayList
 
     public void addGoal(Goal goal){
         try {
@@ -116,6 +211,10 @@ public class User {
     public void removeGoal(Goal goal){
         this.goalLog.remove(goal);
 
+    }
+
+    public ArrayList<Challenge> getCurrentChallenges(){
+        return currentChallenges;
     }
 
     //Getters and Setters
