@@ -177,20 +177,27 @@ public class User {
         }
     }
 
-    
 
-    public List<Goal> getGoalsFromDatabase(User user) {
+
+    public List<Goal> getGoalsFromDatabase() {
         List<Goal> goals = new ArrayList<>();
-        String sql = "SELECT distance, minutes FROM goals WHERE user_id = ?";
+        String sql = "SELECT distance, minutes, progress FROM goals WHERE user_id = ?";
 
         try (PreparedStatement stmt = DatabaseHandler.getConnection().prepareStatement(sql)) {
-            stmt.setInt(1, user.getId()); // Sætter brugerens ID i forespørgslen
+            stmt.setInt(1, getId()); // Sætter brugerens ID i forespørgslen
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     float distance = rs.getFloat("distance");
                     int minutes = rs.getInt("minutes");
-                    Goal goal = new Goal(distance, minutes);
+                    float progress = rs.getFloat("progress");
+                    Goal goal;
+                    if (minutes != 0) {
+                        goal = new Goal(distance, minutes, progress);
+                    }
+                    else {
+                        goal = new Goal(distance, progress);
+                    }
                     goals.add(goal); // Tilføjer målet til listen
                 }
             }
@@ -198,7 +205,7 @@ public class User {
             System.out.println("Error retrieving goals: " + e.getMessage());
         }
         return goals; // Returnerer listen af mål
-    } // Skal fikses - INGEN liste/ArrayList
+    }
 
     public void addGoal(Goal goal){
         try {
@@ -209,7 +216,7 @@ public class User {
     }
 
     public void removeGoal(Goal goal){
-        this.goalLog.remove(goal);
+        goalLog.remove(goal);
 
     }
 
@@ -275,7 +282,7 @@ public class User {
     }
 
     public void save() {
-         DatabaseHandler.saveUser(this);
+        DatabaseHandler.saveUser(this);
     }
 
 }

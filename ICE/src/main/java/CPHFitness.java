@@ -57,7 +57,10 @@ public class CPHFitness {
                 int seconds = ui.promptNumeric("Enter seconds: ");
                 String date = ui.promptText("Enter the date of the run: dd/mm/yy: ");
                 float distance = ui.promptNumeric("Enter the distance in meters:");
-
+                int totalMin = hours*60 + minutes;
+                DatabaseHandler.updateDistanceGoals(currentUser,distance/1000);
+                DatabaseHandler.updateTimeGoals(currentUser, totalMin);
+                DatabaseHandler.updateDualGoals(currentUser, totalMin, distance);
                 Run run = new Run(hours, minutes, seconds, distance, date);
                 DatabaseHandler.saveRun(currentUser, run);
                 System.out.println("You just added the run " + run + " to your running log. Good work!");
@@ -81,7 +84,8 @@ public class CPHFitness {
                 mainMenu();
             case 6:
                 System.out.println("Current goals: ");
-                currentUser.getGoalsFromDatabase(currentUser);
+                for (Goal goal : currentUser.getGoalsFromDatabase())
+                    System.out.println(goal);
                 mainMenu();
             case 7:
                 leaderboard.viewLeaderboard();
@@ -105,7 +109,7 @@ public class CPHFitness {
                 "1) Add untimed distance-based goal (e.g 50 km)\n " +
                 "2) Add timed distance-based goal (e.g 10 km under 60 minutes) \n " +
                 "3) Add timed non-distance based goal (e.g 30 minutes) \n " +
-                "4) Exit program");
+                "4) Return to Main Menu");
 
         switch(choice){
             case 1:
@@ -127,10 +131,12 @@ public class CPHFitness {
             case 3:
                 int goal3 = ui.promptNumeric("Enter time in minutes: ");
                 currentUser.addGoal(new Goal(goal3, 0));
-                System.out.println("You just added : " + goal3 + " to your goals. Good luck!");
+                System.out.println("You just added : " + goal3 + " min to your goals. Good luck!");
                 Goal goalObj3 = new Goal(goal3, 0);
                 DatabaseHandler.saveGoal(currentUser, goalObj3);
                 break;
+            case 4:
+                mainMenu();
             default:
                 System.out.println("Invalid number. Please try again.");
                 createGoal();

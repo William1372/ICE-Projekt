@@ -50,6 +50,7 @@ public class DatabaseHandler {
             user_id INTEGER,
             distance FLOAT,
             minutes INTEGER,
+            progress Float,
             FOREIGN KEY (user_id) REFERENCES users(id)
             );
             """;
@@ -156,14 +157,61 @@ public class DatabaseHandler {
 
     public static void saveGoal (User user, Goal goal){
         String sql = """
-                INSERT INTO goals (user_id, distance, minutes)
-                VALUES (?, ?, ?);
+                INSERT INTO goals (user_id, distance, minutes, progress)
+                VALUES (?, ?, ?, ?);
                 """;
         try (PreparedStatement stmt = connection.prepareStatement(sql)){
             stmt.setInt(1, user.getId());
             stmt.setFloat(2, goal.getDistance());
             stmt.setInt(3, goal.getMinutes());
+            stmt.setFloat(4, goal.getProgress());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error saving goal: " + e.getMessage());
+        }
+    }
 
+    public static void updateDistanceGoals (User user, float progress){
+        String sql = """
+                UPDATE goals
+                SET progress = progress + ?
+                WHERE user_id = ? AND minutes = 0;
+                """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)){
+            stmt.setFloat(1, progress);
+            stmt.setInt(2, user.getId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error saving goal: " + e.getMessage());
+        }
+    }
+
+    public static void updateTimeGoals (User user, int progress){
+        String sql = """
+                UPDATE goals
+                SET progress = progress + ?
+                WHERE user_id = ? AND distance = 0;
+                """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)){
+            stmt.setFloat(1, progress);
+            stmt.setInt(2, user.getId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error saving goal: " + e.getMessage());
+        }
+    }
+
+    public static void updateDualGoals (User user, int time, float distance){
+        String sql = """
+                UPDATE goals
+                SET progress = ?
+                WHERE user_id = ? AND (progress > ? OR progress = 0) AND NOT (distance > ? OR distance = 0) AND NOT minutes = 0;
+                """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)){
+            stmt.setFloat(1, time);
+            stmt.setInt(2, user.getId());
+            stmt.setFloat(3, time);
+            stmt.setFloat(4, distance);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Error saving goal: " + e.getMessage());
